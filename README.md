@@ -2,8 +2,6 @@
 
 面向 Codex 的仓库级 agent harness skill：基于真实工程证据生成或优化 `AGENTS.md`、`ARCHITECTURE.md`、质量指南和执行计划体系，并安装不可项目化修改的标准 `PLANS.md`。
 
-> 这是社区维护项目，不是 OpenAI 官方仓库。
-
 ## 中文
 
 ### 主要能力
@@ -14,7 +12,7 @@
 - 按工程需要补充 Coding Standards、Code Review 和 Verification Guide。
 - 建立 `docs/exec-plans/` 生命周期，同时保留既有 active/completed 历史。
 - 从 skill 资产原样安装统一 `PLANS.md`，并通过 SHA-256 检查缺失或漂移。
-- 以 Codex 为主；仅在已有或明确要求时提供薄 Claude Code 兼容。不生成 Cursor 配置。
+- 以 Codex 为主；仅在已有或明确要求时提供薄 Claude Code 兼容。
 - 提供只读 `harness_audit.py`，检查 Markdown、链接、skill 元数据、Claude 导入、指令链大小和标准 `PLANS.md`。
 
 ### 仓库结构
