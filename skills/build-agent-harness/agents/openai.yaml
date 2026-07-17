@@ -1,0 +1,4 @@
+interface:
+  display_name: "Build Agent Harness"
+  short_description: "Build harness docs with a canonical PLANS.md"
+  default_prompt: "Use $build-agent-harness to generate or optimize the agent harness for this repository and install the canonical PLANS.md unchanged."
