@@ -48,7 +48,7 @@ Install the three required repository-root entry points: `AGENTS.md`, `CLAUDE.md
 | Verification guide | Multiple change types have different authoritative checks | One short command is sufficient in `AGENTS.md` |
 | Local skill | A repeated workflow has a precise trigger and benefits from helpers or detailed context | It is one-off guidance or a renamed document |
 
-Except for the fixed root `PLANS.md`, preserve an existing filename and structure when it already has a clear canonical role. Avoid creating case or spelling variants that compete with it.
+Except for the fixed root `PLANS.md`, preserve an existing filename, location, and canonical ownership when they already have clear roles. Normalize `AGENTS.md` and `ARCHITECTURE.md` structure against [document-style.md](document-style.md); for other documents, retain a useful existing structure unless the request requires a change. Avoid creating case or spelling variants that compete with an existing owner.
 
 A non-audit run is incomplete until the three repository-root files exist. Every root or nested instruction boundary pairs `AGENTS.md` with `CLAUDE.md`; every independent project boundary adds `ARCHITECTURE.md`. A pure aggregation root therefore has `AGENTS.md`, `CLAUDE.md`, and `PLANS.md`, while its frontend and backend project directories each have all three local harness documents.
 
@@ -56,15 +56,7 @@ A non-audit run is incomplete until the three repository-root files exist. Every
 
 The root file is a concise operating guide, not a full handbook. Include only what agents repeatedly need.
 
-Recommended outline:
-
-1. **Purpose and success** — what correct work in this repository means.
-2. **Repository map** — real subprojects and where deeper guidance lives.
-3. **Authoritative commands** — setup, focused test, broader test, lint, typecheck, build, and run commands that were verified.
-4. **Global constraints** — boundaries, generated files, security-sensitive areas, compatibility promises, and prohibited changes.
-5. **Working method** — inspect, make surgical changes, validate by risk, review the diff.
-6. **Definition of done** — checkable completion and reporting requirements.
-7. **Links** — architecture, planning, standards, review, verification, and local skills.
+Follow the mandatory title, semantic section order, numbering rules, and source layout in [document-style.md](document-style.md). The root outline must expose repository positioning and map, start-of-task reading, autonomy and execution boundaries, ExecPlan triggers, repository invariants, on-demand documentation, authoritative commands, and completion criteria in that order.
 
 Write imperatively and precisely. State working directories for commands in monorepos. Distinguish required checks from optional or expensive checks. Name missing prerequisites rather than hiding them.
 
@@ -81,14 +73,7 @@ Keep out:
 
 Create nested instructions only at meaningful boundaries. The nested file inherits root guidance, so include only local information and explicit exceptions.
 
-Recommended outline:
-
-1. Scope of the subproject.
-2. Local map and entry points.
-3. Local setup/build/test/lint/typecheck/run commands.
-4. Architecture and contract invariants.
-5. High-risk areas and prohibited shortcuts.
-6. Local definition of done and links.
+Follow the nested outline in [document-style.md](document-style.md): scope and entry points, before-editing evidence, architecture and dependency boundaries, domain contracts and risks, tests and authoritative commands, then local completion criteria. Domain-specific sections may expand the middle of the outline; commands stay near the end.
 
 Do not restate root rules unless the local file changes or sharpens them. If two sibling projects share extensive detail, move that detail to a common linked guide instead of copying it.
 
@@ -96,7 +81,9 @@ Use `AGENTS.override.md` only when the repository already relies on the override
 
 ## Architecture documents
 
-Place an `ARCHITECTURE.md` at every independently buildable or runnable project boundary. This includes the repository root for a single-project repository, but excludes a pure aggregation root whose deployable projects live in child directories. Present the current system as current fact and label proposed changes explicitly. A small project still gets a short document that states its scope, entrypoint or artifact, dependency shape, and verification surface without inventing complexity.
+Place an `ARCHITECTURE.md` at every independently buildable or runnable project boundary. This includes the repository root for a single-project repository, but excludes a pure aggregation root whose deployable projects live in child directories. Present the current system as current fact and move proposed changes to an ExecPlan or explicit design document. A small project still gets a short architecture document that states its scope, entrypoint or artifact, dependency shape, and verification surface without inventing complexity.
+
+Use the mandatory title and continuously numbered level-two outline in [document-style.md](document-style.md). End with a verification section. Architecture documents describe the current system; move proposed changes, diagnoses, evolution recommendations, and roadmaps to an ExecPlan or explicit design document.
 
 Useful sections:
 

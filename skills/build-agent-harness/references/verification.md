@@ -1,6 +1,6 @@
 # Harness verification
 
-Verify both the documentation structure and the claims it makes. Structural checks catch broken wiring; repository commands establish behavioral truth.
+Verify documentation structure, document style, and the claims the harness makes. Mechanical checks catch broken wiring and format drift; repository commands establish behavioral truth.
 
 ## Contents
 
@@ -16,11 +16,11 @@ Verify both the documentation structure and the claims it makes. Structural chec
 Use four levels:
 
 1. **Inventory** — confirm the tool sees the Git root, subproject manifests, instruction files, architecture files, plans, skills, compatibility files, and canonical `PLANS.md` status.
-2. **Structure** — check the required root files, project architecture boundaries, the `PLANS.md` asset hash, local links, Markdown fences, skill frontmatter, Claude imports, symlinks, plan indexes, and instruction-chain size.
+2. **Structure and style** — check the required root files, project architecture boundaries, canonical AGENTS and architecture titles, semantic section anchors, heading numbering, final sections, the `PLANS.md` asset hash, local links, Markdown fences, skill frontmatter, Claude imports, symlinks, plan indexes, and instruction-chain size.
 3. **Claims** — verify commands, paths, runtime descriptions, and policies against repository evidence and safe execution.
 4. **Scope** — inspect the final diff and status for accidental application, configuration, generated, or historical changes.
 
-Passing the structural helper is necessary but not sufficient.
+Passing the structure-and-style helper is necessary but not sufficient.
 
 ## Run the audit helper
 
@@ -52,12 +52,12 @@ Repeat `--project-boundary` for every independent project identified during reco
 Exit codes:
 
 - `0`: inventory completed or validation found no errors;
-- `1`: structural validation errors were found;
+- `1`: structure or document-style validation errors were found;
 - `2`: invalid input or a runtime failure prevented the audit.
 
 Warnings do not change the exit code. Read them: they usually identify portability or maintainability risks that require human judgment.
 
-The helper is read-only. It deliberately does not generate files, replace a noncanonical `PLANS.md`, repair links, or execute project commands. Validation treats missing root `AGENTS.md`, root `CLAUDE.md`, or canonical `PLANS.md` as errors; every directory with effective agent instructions must also contain sibling Claude compatibility. It conservatively infers project boundaries from manifests colocated with agent instructions and requires architecture there, while repository reconnaissance remains authoritative for ambiguous layouts. Inventory reports `missing`, `matches`, or `differs` plus the canonical and target SHA-256 values when available.
+The helper is read-only. It deliberately does not generate files, replace a noncanonical `PLANS.md`, repair links, reformat documents, or execute project commands. Validation treats missing root `AGENTS.md`, root `CLAUDE.md`, or canonical `PLANS.md` as errors; every directory with effective agent instructions must also contain sibling Claude compatibility. It validates standard `AGENTS.md` and `ARCHITECTURE.md` files against [document-style.md](document-style.md), conservatively infers project boundaries from manifests colocated with agent instructions, and requires architecture there, while repository reconnaissance remains authoritative for ambiguous layouts. Inventory reports `missing`, `matches`, or `differs` plus the canonical and target SHA-256 values when available.
 
 ## Verify documented claims
 
@@ -82,11 +82,13 @@ For docs-only changes, run application suites only when needed to confirm a docu
 Check the final state manually:
 
 - Root `AGENTS.md` contains repository-wide instructions and links, not copied detail.
+- Root and nested `AGENTS.md` use the canonical title, expose the required semantic anchors in the expected order, keep commands near the end, and finish with completion criteria.
 - Root `CLAUDE.md` imports root `AGENTS.md`.
 - Nested `AGENTS.md` files contain only local differences and inherit root rules cleanly.
 - Every root or nested `AGENTS.md` boundary has sibling `CLAUDE.md` importing the effective local instruction file.
 - Every independently buildable or runnable project boundary has `ARCHITECTURE.md`; a pure aggregation root may intentionally omit it.
-- Architecture statements describe current code; future changes are labeled and planned separately.
+- Architecture files use the `ARCHITECTURE.md — …` title shape, continuously numbered level-two sections, and a final verification section.
+- Architecture statements describe current code; future changes, diagnoses, and evolution recommendations are planned separately.
 - Root `PLANS.md` is byte-for-byte identical to the skill's canonical asset; project-specific rules live in `AGENTS.md` or the execution-plan index.
 - Exec-plan indexes point to real files and completed history was preserved.
 - Coding, review, and verification guides use repository-specific evidence.
@@ -131,4 +133,4 @@ The final report should state:
 6. Any claim that was sampled rather than exhaustively verified.
 7. Confirmation that protected and unrelated files were untouched.
 
-Do not say “all checks passed” when only the structural helper ran. Name the layer that passed.
+Do not say “all checks passed” when only the structure-and-style helper ran. Name the layer that passed.

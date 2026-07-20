@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read-only inventory and structural validation for repository agent harnesses."""
+"""Read-only inventory plus structural and style validation for agent harnesses."""
 
 from __future__ import annotations
 
@@ -83,14 +83,178 @@ QUALITY_DOC_NAMES = {
 
 SKILL_NAME_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 FENCE_RE = re.compile(r"^[ \t]{0,3}(`{3,}|~{3,})")
+HEADING_RE = re.compile(r"^(#{1,6})[ \t]+(.+?)[ \t]*$")
+NUMBERED_SECTION_RE = re.compile(r"^(\d+)\.[ \t]+(.+)$")
+LIST_ITEM_RE = re.compile(r"^[ \t]{0,3}(?:[-*+]|\d+[.)])[ \t]+")
 LINK_RE = re.compile(r"!?\[[^\]\n]*\]\(([^)\n]+)\)")
 FRONTMATTER_KEY_RE = re.compile(r"^([A-Za-z][A-Za-z0-9_-]*):(?:\s*(.*))?$")
 CLAUDE_IMPORT_RE = re.compile(r"^\s*@([^\s]+)\s*$")
+ARCHITECTURE_TITLE_RE = re.compile(r"^ARCHITECTURE\.md — \S.*$")
+COMPLETION_HEADING_RE = re.compile(
+    r"(完成|交付|definition[ \t]+of[ \t]+done|completion|done)",
+    re.IGNORECASE,
+)
+VERIFICATION_HEADING_RE = re.compile(
+    r"(验证|校验|verification|validation|verify)", re.IGNORECASE
+)
+FINAL_VERIFICATION_HEADING_RE = re.compile(
+    r"^(?:验证(?:入口|指南|方式)?|校验|"
+    r"(?:verification|validation)(?:[ \t]+(?:entry|entry[ \t]+points|guide))?)$",
+    re.IGNORECASE,
+)
+FUTURE_ARCHITECTURE_HEADING_RE = re.compile(
+    r"(当前问题诊断|建议.*演进|演进方向|未来(?:架构|设计|形态|工作)|"
+    r"后续(?:计划|工作)|下一步|路线图|值得继续推进|recommended[ \t]+evolution|"
+    r"future[ \t]+(?:architecture|design|work)|follow-up|planned[ \t]+changes?|"
+    r"roadmap|proposed[ \t]+(?:architecture|design)|next[ \t]+(?:steps|priorities))",
+    re.IGNORECASE,
+)
+
+ROOT_AGENTS_SECTIONS = (
+    (
+        "project positioning and repository map",
+        re.compile(
+            r"(项目.*(?:定位|目录|地图)|仓库地图|repository[ \t]+map|"
+            r"project[ \t]+(?:map|positioning|overview))",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "before-start guidance",
+        re.compile(
+            r"(开始(?:任务)?前?|任务前|before[ \t]+(?:starting|work)|getting[ \t]+started)",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "autonomy and execution boundaries",
+        re.compile(
+            r"(自治|审批|执行(?:边界|闭环|流程)|工作方式|autonomy|approval|"
+            r"execution[ \t]+(?:boundary|loop)|working[ \t]+method)",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "ExecPlan triggers",
+        re.compile(r"exec[ \t-]*plans?", re.IGNORECASE),
+    ),
+    (
+        "repository invariants",
+        re.compile(
+            r"(仓库.*不变量|跨.*不变量|全局.*约束|repository[ \t]+invariants?|"
+            r"global[ \t]+constraints?)",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "on-demand documentation",
+        re.compile(
+            r"(按需阅读|文档与代码边界|文档(?:导航|索引|边界)|"
+            r"on-demand[ \t]+reading|documentation[ \t]+(?:map|boundaries|index))",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "authoritative commands",
+        re.compile(
+            r"(常用命令|权威验证|验证命令|commands?|verification[ \t]+commands?)",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "completion criteria",
+        COMPLETION_HEADING_RE,
+    ),
+)
+
+NESTED_AGENTS_SECTIONS = (
+    (
+        "subproject scope and entry points",
+        re.compile(
+            r"(子工程定位|项目定位|工作入口|范围与入口|范围与结构|scope|"
+            r"entry[ \t]+points?|project[ \t]+positioning)",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "before-editing guidance",
+        re.compile(
+            r"(开始前|开始任务|工作入口|阅读顺序|范围与入口|before|"
+            r"getting[ \t]+started|read[ \t]+first)",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "architecture and dependency constraints",
+        re.compile(
+            r"(架构|分层|职责边界|实现约束|组件约束|不变量|结构|architecture|"
+            r"layers?|dependency|boundaries|constraints?|invariants?)",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "domain contracts and high-risk invariants",
+        re.compile(
+            r"(关键契约|认证与错误|API.*(?:任务|回调)|开放平台|数据库与安全|"
+            r"UI.*交互|代码与依赖|运行不变量|必须保持.*不变量|组件约束|"
+            r"迁移与安全|高风险|domain[ \t]+contracts?|contracts?|security|"
+            r"authentication|error[ \t]+boundaries)",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "tests and authoritative commands",
+        re.compile(
+            r"(常用命令|本地命令|测试|验证|commands?|tests?|verification)",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "completion criteria",
+        COMPLETION_HEADING_RE,
+    ),
+)
+
+ARCHITECTURE_SECTIONS = (
+    (
+        "system purpose and runtime boundary",
+        re.compile(
+            r"(系统定位|系统角色|技术栈与运行边界|边界与职责|项目定位|"
+            r"system[ \t]+(?:purpose|role|positioning|boundary)|runtime[ \t]+boundary)",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "layers and dependency direction",
+        re.compile(
+            r"(分层|依赖方向|源码结构|应用组合|运行结构|顶层架构|模块关系|"
+            r"layers?|dependency[ \t]+direction|source[ \t]+layout|"
+            r"application[ \t]+composition)",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "startup, lifecycle, or representative runtime flow",
+        re.compile(
+            r"(启动|生命周期|路由|数据流|运行流程|进程生命周期|startup|"
+            r"lifecycle|routing|data[ \t]+flow|runtime[ \t]+flow|"
+            r"(?:request|event|job|execution|representative)[ \t]+flow)",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "verification",
+        VERIFICATION_HEADING_RE,
+    ),
+)
 
 
 def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Inventory or validate a repository agent harness without modifying it."
+        description=(
+            "Inventory or validate repository agent harness structure and style "
+            "without modifying it."
+        )
     )
     parser.add_argument(
         "--root",
@@ -402,6 +566,484 @@ def check_fences(
                 open_fence[2],
             )
         )
+
+
+def check_fence_labels(
+    path: Path, root: Path, text: str, errors: List[Dict[str, Any]]
+) -> None:
+    open_fence: Optional[Tuple[str, int]] = None
+
+    for line_number, line in enumerate(text.splitlines(), start=1):
+        match = FENCE_RE.match(line)
+        if not match:
+            continue
+        marker = match.group(1)
+        marker_type = marker[0]
+        marker_length = len(marker)
+        if open_fence is None:
+            if not line[match.end() :].strip():
+                errors.append(
+                    finding(
+                        "unlabeled-code-fence",
+                        "AGENTS.md and ARCHITECTURE.md code fences need a language label",
+                        relative(path, root),
+                        line_number,
+                    )
+                )
+            open_fence = (marker_type, marker_length)
+        elif marker_type == open_fence[0] and marker_length >= open_fence[1]:
+            open_fence = None
+
+
+def markdown_headings(text: str) -> List[Dict[str, Any]]:
+    headings: List[Dict[str, Any]] = []
+    open_fence: Optional[Tuple[str, int]] = None
+
+    for line_number, line in enumerate(text.splitlines(), start=1):
+        fence_match = FENCE_RE.match(line)
+        if fence_match:
+            marker = fence_match.group(1)
+            marker_type = marker[0]
+            marker_length = len(marker)
+            if open_fence is None:
+                open_fence = (marker_type, marker_length)
+            elif marker_type == open_fence[0] and marker_length >= open_fence[1]:
+                open_fence = None
+            continue
+        if open_fence is not None:
+            continue
+
+        heading_match = HEADING_RE.match(line)
+        if not heading_match:
+            continue
+        title = re.sub(r"[ \t]+#+[ \t]*$", "", heading_match.group(2).strip())
+        headings.append(
+            {
+                "level": len(heading_match.group(1)),
+                "title": title,
+                "line": line_number,
+            }
+        )
+    return headings
+
+
+def section_number(title: str) -> Optional[int]:
+    match = NUMBERED_SECTION_RE.match(title)
+    return int(match.group(1)) if match else None
+
+
+def section_title(title: str) -> str:
+    match = NUMBERED_SECTION_RE.match(title)
+    return match.group(2).strip() if match else title.strip()
+
+
+def has_opening_scope_paragraph(
+    text: str, title_line: int, first_section_line: int
+) -> bool:
+    lines = text.splitlines()
+    open_fence: Optional[Tuple[str, int]] = None
+    in_html_comment = False
+
+    for line in lines[title_line : first_section_line - 1]:
+        fence_match = FENCE_RE.match(line)
+        if fence_match:
+            marker = fence_match.group(1)
+            marker_type = marker[0]
+            marker_length = len(marker)
+            if open_fence is None:
+                open_fence = (marker_type, marker_length)
+            elif marker_type == open_fence[0] and marker_length >= open_fence[1]:
+                open_fence = None
+            continue
+        if open_fence is not None:
+            continue
+
+        if in_html_comment:
+            closing = line.find("-->")
+            if closing == -1:
+                continue
+            line = line[closing + 3 :]
+            in_html_comment = False
+        while "<!--" in line:
+            opening = line.find("<!--")
+            closing = line.find("-->", opening + 4)
+            if closing == -1:
+                line = line[:opening]
+                in_html_comment = True
+                break
+            line = line[:opening] + line[closing + 3 :]
+
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if (
+            stripped.startswith(("#", "-", "*", "+", ">", "|", "```", "~~~"))
+            or stripped.startswith("<!--")
+            or re.match(r"^\d+[.)][ \t]+", stripped)
+        ):
+            continue
+        return True
+    return False
+
+
+def is_plain_prose_line(line: str) -> bool:
+    stripped = line.strip()
+    if not stripped:
+        return False
+    if (
+        stripped.startswith(("#", "-", "*", "+", ">", "|", "```", "~~~"))
+        or stripped.startswith("<!--")
+        or stripped.endswith("-->")
+        or re.match(r"^\d+[.)][ \t]+", stripped)
+        or re.fullmatch(r"[-*_]{3,}", stripped)
+    ):
+        return False
+    return True
+
+
+def check_manual_prose_wrapping(
+    path: Path, root: Path, text: str, errors: List[Dict[str, Any]]
+) -> None:
+    open_fence: Optional[Tuple[str, int]] = None
+    in_html_comment = False
+    previous_plain = False
+    previous_list_item = False
+
+    for line_number, line in enumerate(text.splitlines(), start=1):
+        fence_match = FENCE_RE.match(line)
+        if fence_match:
+            marker = fence_match.group(1)
+            marker_type = marker[0]
+            marker_length = len(marker)
+            if open_fence is None:
+                open_fence = (marker_type, marker_length)
+            elif marker_type == open_fence[0] and marker_length >= open_fence[1]:
+                open_fence = None
+            previous_plain = False
+            previous_list_item = False
+            continue
+        if open_fence is not None:
+            previous_plain = False
+            previous_list_item = False
+            continue
+
+        if in_html_comment:
+            closing = line.find("-->")
+            if closing == -1:
+                previous_plain = False
+                previous_list_item = False
+                continue
+            line = line[closing + 3 :]
+            in_html_comment = False
+        while "<!--" in line:
+            opening = line.find("<!--")
+            closing = line.find("-->", opening + 4)
+            if closing == -1:
+                line = line[:opening]
+                in_html_comment = True
+                break
+            line = line[:opening] + line[closing + 3 :]
+
+        current_plain = is_plain_prose_line(line)
+        if current_plain and (previous_plain or previous_list_item):
+            errors.append(
+                finding(
+                    "manual-prose-wrapping",
+                    "keep each prose paragraph or list item on one source line; "
+                    "this content appears manually wrapped",
+                    relative(path, root),
+                    line_number,
+                )
+            )
+            return
+        previous_plain = current_plain
+        previous_list_item = bool(LIST_ITEM_RE.match(line))
+
+
+def semantic_section_positions(
+    headings: Sequence[Dict[str, Any]],
+    required_sections: Sequence[Tuple[str, re.Pattern[str]]],
+    path: Path,
+    root: Path,
+    error_code: str,
+    errors: List[Dict[str, Any]],
+) -> Optional[List[int]]:
+    titles = [section_title(item["title"]) for item in headings]
+    positions: List[int] = []
+    missing = False
+
+    for label, pattern in required_sections:
+        matches = [index for index, title in enumerate(titles) if pattern.search(title)]
+        if not matches:
+            errors.append(
+                finding(
+                    error_code,
+                    f"missing required semantic section: {label}",
+                    relative(path, root),
+                )
+            )
+            missing = True
+            continue
+        positions.append(matches[-1] if label == "completion criteria" else matches[0])
+
+    return None if missing else positions
+
+
+def check_optional_section_numbering(
+    headings: Sequence[Dict[str, Any]],
+    path: Path,
+    root: Path,
+    errors: List[Dict[str, Any]],
+) -> None:
+    numbers = [section_number(item["title"]) for item in headings]
+    numbered_count = sum(number is not None for number in numbers)
+    if numbered_count == 0:
+        return
+    if numbered_count != len(numbers):
+        first_unnumbered = next(
+            item for item, number in zip(headings, numbers) if number is None
+        )
+        errors.append(
+            finding(
+                "mixed-agents-section-numbering",
+                "AGENTS.md level-two sections must be either all numbered or all unnumbered",
+                relative(path, root),
+                first_unnumbered["line"],
+            )
+        )
+        return
+
+    expected = list(range(1, len(numbers) + 1))
+    if numbers != expected:
+        errors.append(
+            finding(
+                "nonsequential-agents-sections",
+                "numbered AGENTS.md level-two sections must be sequential from 1",
+                relative(path, root),
+                headings[0]["line"] if headings else None,
+            )
+        )
+
+
+def check_agents_style(
+    path: Path, root: Path, text: str, errors: List[Dict[str, Any]]
+) -> None:
+    headings = markdown_headings(text)
+    h1_headings = [item for item in headings if item["level"] == 1]
+    h2_headings = [item for item in headings if item["level"] == 2]
+    relative_path = relative(path, root)
+
+    canonical_title = (
+        len(h1_headings) == 1 and h1_headings[0]["title"] == "AGENTS.md"
+    )
+    if not canonical_title:
+        errors.append(
+            finding(
+                "noncanonical-agents-title",
+                "AGENTS.md must contain exactly one level-one title: # AGENTS.md",
+                relative_path,
+                h1_headings[0]["line"] if h1_headings else 1,
+            )
+        )
+    elif not text.splitlines() or text.splitlines()[0] != "# AGENTS.md":
+        errors.append(
+            finding(
+                "agents-title-not-first",
+                "AGENTS.md must start on line 1 with exactly '# AGENTS.md'",
+                relative_path,
+                1,
+            )
+        )
+
+    if h1_headings and not has_opening_scope_paragraph(
+        text,
+        h1_headings[0]["line"],
+        h2_headings[0]["line"] if h2_headings else len(text.splitlines()) + 1,
+    ):
+        errors.append(
+            finding(
+                "missing-agents-intro",
+                "AGENTS.md needs a short scope and inheritance paragraph after its title",
+                relative_path,
+                h1_headings[0]["line"],
+            )
+        )
+
+    is_root = path.parent == root
+    minimum_sections = 8 if is_root else 6
+    if len(h2_headings) < minimum_sections:
+        errors.append(
+            finding(
+                "too-few-agents-sections",
+                f"{'root' if is_root else 'nested'} AGENTS.md needs at least "
+                f"{minimum_sections} meaningful level-two sections; found "
+                f"{len(h2_headings)}",
+                relative_path,
+            )
+        )
+
+    check_optional_section_numbering(h2_headings, path, root, errors)
+    positions = semantic_section_positions(
+        h2_headings,
+        ROOT_AGENTS_SECTIONS if is_root else NESTED_AGENTS_SECTIONS,
+        path,
+        root,
+        "missing-agents-section",
+        errors,
+    )
+    if positions is not None and positions != sorted(positions):
+        errors.append(
+            finding(
+                "agents-section-order",
+                "AGENTS.md semantic sections are not in the canonical order",
+                relative_path,
+            )
+        )
+
+    if h2_headings and not COMPLETION_HEADING_RE.search(
+        section_title(h2_headings[-1]["title"])
+    ):
+        errors.append(
+            finding(
+                "agents-final-section-not-completion",
+                "the final AGENTS.md level-two section must define completion criteria",
+                relative_path,
+                h2_headings[-1]["line"],
+            )
+        )
+
+    command_pattern = (
+        ROOT_AGENTS_SECTIONS[-2][1] if is_root else NESTED_AGENTS_SECTIONS[-2][1]
+    )
+    command_positions = [
+        index
+        for index, item in enumerate(h2_headings)
+        if command_pattern.search(section_title(item["title"]))
+    ]
+    if command_positions and command_positions[0] < max(0, len(h2_headings) - 3):
+        errors.append(
+            finding(
+                "agents-commands-too-early",
+                "tests and commands belong near the end of AGENTS.md",
+                relative_path,
+                h2_headings[command_positions[0]]["line"],
+            )
+        )
+
+    check_manual_prose_wrapping(path, root, text, errors)
+    check_fence_labels(path, root, text, errors)
+
+
+def check_architecture_style(
+    path: Path, root: Path, text: str, errors: List[Dict[str, Any]]
+) -> None:
+    headings = markdown_headings(text)
+    h1_headings = [item for item in headings if item["level"] == 1]
+    h2_headings = [item for item in headings if item["level"] == 2]
+    relative_path = relative(path, root)
+
+    canonical_title = (
+        len(h1_headings) == 1
+        and ARCHITECTURE_TITLE_RE.fullmatch(h1_headings[0]["title"]) is not None
+    )
+    if not canonical_title:
+        errors.append(
+            finding(
+                "noncanonical-architecture-title",
+                "ARCHITECTURE.md must contain exactly one title shaped "
+                "'# ARCHITECTURE.md — <project architecture>'",
+                relative_path,
+                h1_headings[0]["line"] if h1_headings else 1,
+            )
+        )
+    elif (
+        not text.splitlines()
+        or text.splitlines()[0] != f"# {h1_headings[0]['title']}"
+    ):
+        errors.append(
+            finding(
+                "architecture-title-not-first",
+                "ARCHITECTURE.md must start on line 1 with its canonical title",
+                relative_path,
+                1,
+            )
+        )
+
+    if len(h2_headings) < 5:
+        errors.append(
+            finding(
+                "too-few-architecture-sections",
+                "ARCHITECTURE.md needs at least five meaningful level-two sections",
+                relative_path,
+            )
+        )
+
+    numbers = [section_number(item["title"]) for item in h2_headings]
+    if any(number is None for number in numbers):
+        first_unnumbered = next(
+            item for item, number in zip(h2_headings, numbers) if number is None
+        )
+        errors.append(
+            finding(
+                "unnumbered-architecture-sections",
+                "every architecture level-two section must be numbered",
+                relative_path,
+                first_unnumbered["line"],
+            )
+        )
+    elif numbers != list(range(1, len(numbers) + 1)):
+        errors.append(
+            finding(
+                "nonsequential-architecture-sections",
+                "architecture level-two sections must be sequential from 1",
+                relative_path,
+                h2_headings[0]["line"] if h2_headings else None,
+            )
+        )
+
+    positions = semantic_section_positions(
+        h2_headings,
+        ARCHITECTURE_SECTIONS,
+        path,
+        root,
+        "missing-architecture-section",
+        errors,
+    )
+    if positions is not None and positions != sorted(positions):
+        errors.append(
+            finding(
+                "architecture-section-order",
+                "architecture semantic sections are not in the canonical order",
+                relative_path,
+            )
+        )
+
+    if h2_headings and not FINAL_VERIFICATION_HEADING_RE.fullmatch(
+        section_title(h2_headings[-1]["title"])
+    ):
+        errors.append(
+            finding(
+                "architecture-final-section-not-verification",
+                "the final architecture level-two section must be a dedicated verification section",
+                relative_path,
+                h2_headings[-1]["line"],
+            )
+        )
+
+    for item in h2_headings:
+        if FUTURE_ARCHITECTURE_HEADING_RE.search(section_title(item["title"])):
+            errors.append(
+                finding(
+                    "architecture-mixes-future-design",
+                    "current-state architecture must move diagnosis, recommendations, "
+                    "and future evolution to an ExecPlan or design document",
+                    relative_path,
+                    item["line"],
+                )
+            )
+
+    check_manual_prose_wrapping(path, root, text, errors)
+    check_fence_labels(path, root, text, errors)
 
 
 def extract_link_target(raw_target: str) -> str:
@@ -780,6 +1422,10 @@ def validate(
             )
         check_fences(path, root, text, errors)
         check_links(path, root, text, errors, warnings)
+        if path.name == "AGENTS.md":
+            check_agents_style(path, root, text, errors)
+        elif path.name == "ARCHITECTURE.md":
+            check_architecture_style(path, root, text, errors)
         if is_project_skill(path, root):
             check_skill(path, root, text, errors, warnings)
         if path.name == "CLAUDE.md":
