@@ -1,6 +1,6 @@
 # Harness blueprint
 
-Design the harness as a layered operating system for repository work: short instructions are always available, detailed context is linked, plans preserve long-running state, and executable helpers validate what can be checked mechanically.
+Design the harness as a layered operating system for repository work: short instructions are always available, project architecture is explicit, Claude imports the Codex-first rules, plans preserve long-running state, and executable helpers validate what can be checked mechanically.
 
 ## Contents
 
@@ -31,22 +31,26 @@ Codex combines applicable instruction files from the repository root toward the 
 
 ## Select the document set
 
-Install the root harness entry points, including the canonical `PLANS.md`. Select optional documents by demonstrated repository need rather than creating them merely to complete a template.
+Install the three required repository-root entry points: `AGENTS.md`, `CLAUDE.md`, and the canonical `PLANS.md`. Then identify independently buildable or runnable projects and require `ARCHITECTURE.md` at each of those boundaries.
 
 | Document | Create or retain when | Avoid when |
 | --- | --- | --- |
 | Root `AGENTS.md` | Agent work is expected in the repository | Almost never; this is the harness entry point |
+| Root `ARCHITECTURE.md` | The repository root is itself an independently buildable or runnable project | The root only aggregates nested projects |
+| Root `CLAUDE.md` | Every create or optimize request | Never duplicate `AGENTS.md`; import it |
 | Nested `AGENTS.md` | A real subproject has materially different commands or constraints | It would only repeat root guidance |
-| `ARCHITECTURE.md` | Runtime flow, boundaries, contracts, or risks need durable explanation | The directory is trivial and self-evident |
+| Nested `ARCHITECTURE.md` | The directory is an independently buildable or runnable project | The directory only scopes instructions and is not a project boundary |
+| Nested `CLAUDE.md` | Every directory that receives nested `AGENTS.md` | Never duplicate the sibling instructions |
 | Root `PLANS.md` | Every repository | It differs from the canonical skill asset |
 | `docs/exec-plans/` | Active/completed plan history is useful | It would hold only empty ceremony |
 | Coding standards | Verified code conventions exceed a short root summary | It would be generic language advice |
 | Code review guide | Review gates, severity, or domain checks need definition | Existing project policy already owns the topic |
 | Verification guide | Multiple change types have different authoritative checks | One short command is sufficient in `AGENTS.md` |
 | Local skill | A repeated workflow has a precise trigger and benefits from helpers or detailed context | It is one-off guidance or a renamed document |
-| `CLAUDE.md` | Claude compatibility is requested or already part of the repository | Codex-only scope with no existing Claude surface |
 
 Except for the fixed root `PLANS.md`, preserve an existing filename and structure when it already has a clear canonical role. Avoid creating case or spelling variants that compete with it.
+
+A non-audit run is incomplete until the three repository-root files exist. Every root or nested instruction boundary pairs `AGENTS.md` with `CLAUDE.md`; every independent project boundary adds `ARCHITECTURE.md`. A pure aggregation root therefore has `AGENTS.md`, `CLAUDE.md`, and `PLANS.md`, while its frontend and backend project directories each have all three local harness documents.
 
 ## Root AGENTS.md
 
@@ -92,7 +96,7 @@ Use `AGENTS.override.md` only when the repository already relies on the override
 
 ## Architecture documents
 
-Place an `ARCHITECTURE.md` at the root or subproject boundary it describes. Present the current system as current fact and label proposed changes explicitly.
+Place an `ARCHITECTURE.md` at every independently buildable or runnable project boundary. This includes the repository root for a single-project repository, but excludes a pure aggregation root whose deployable projects live in child directories. Present the current system as current fact and label proposed changes explicitly. A small project still gets a short document that states its scope, entrypoint or artifact, dependency shape, and verification surface without inventing complexity.
 
 Useful sections:
 
@@ -205,13 +209,13 @@ Do not create a skill for a single task, a generic policy, or content better own
 
 ## Claude compatibility
 
-Keep Codex instructions canonical. For thin Claude compatibility, a root `CLAUDE.md` can contain:
+Keep Codex instructions canonical. The required root `CLAUDE.md` contains:
 
 ```markdown
 @AGENTS.md
 ```
 
-Use the equivalent relative import at nested boundaries when needed. Add Claude-specific text only for a real behavioral difference; do not duplicate the full instruction body.
+Create the same thin file beside every nested `AGENTS.md`. Because the import target is a sibling, `@AGENTS.md` remains the expected content at each boundary. Add Claude-specific text only for a verified behavioral difference; preserve such existing rules, but do not duplicate the shared instruction body.
 
 If repository-local skills are shared through `.claude/skills/`, preserve the project's existing convention. Symlink or import only when the target tool supports it and the user requested compatibility. Verify every target and avoid two independently maintained copies.
 

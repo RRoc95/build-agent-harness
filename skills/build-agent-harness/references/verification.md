@@ -15,8 +15,8 @@ Verify both the documentation structure and the claims it makes. Structural chec
 
 Use four levels:
 
-1. **Inventory** — confirm the tool sees the Git root, subproject manifests, instruction files, plans, skills, compatibility files, and canonical `PLANS.md` status.
-2. **Structure** — check the `PLANS.md` asset hash, local links, Markdown fences, skill frontmatter, Claude imports, symlinks, plan indexes, and instruction-chain size.
+1. **Inventory** — confirm the tool sees the Git root, subproject manifests, instruction files, architecture files, plans, skills, compatibility files, and canonical `PLANS.md` status.
+2. **Structure** — check the required root files, project architecture boundaries, the `PLANS.md` asset hash, local links, Markdown fences, skill frontmatter, Claude imports, symlinks, plan indexes, and instruction-chain size.
 3. **Claims** — verify commands, paths, runtime descriptions, and policies against repository evidence and safe execution.
 4. **Scope** — inspect the final diff and status for accidental application, configuration, generated, or historical changes.
 
@@ -42,10 +42,12 @@ Structural validation:
 
 ```bash
 python3 "${CODEX_HOME:-$HOME/.codex}/skills/build-agent-harness/scripts/harness_audit.py" \
-  --root /path/to/repository validate
+  --root /path/to/repository validate \
+  --project-boundary path/to/frontend \
+  --project-boundary path/to/backend
 ```
 
-Use `validate --json` for machine-readable results. Override `--max-agent-bytes` when the repository has an explicit Codex instruction budget different from the helper's default.
+Repeat `--project-boundary` for every independent project identified during reconnaissance; use `.` for a single project at the root and exclude a pure aggregation root. This explicit list makes missing `AGENTS.md`, `CLAUDE.md`, and `ARCHITECTURE.md` detectable even when a project initially has no harness files. Use `--json` for machine-readable results. Override `--max-agent-bytes` when the repository has an explicit Codex instruction budget different from the helper's default.
 
 Exit codes:
 
@@ -55,7 +57,7 @@ Exit codes:
 
 Warnings do not change the exit code. Read them: they usually identify portability or maintainability risks that require human judgment.
 
-The helper is read-only. It deliberately does not generate files, replace a noncanonical `PLANS.md`, repair links, execute project commands, or decide whether every optional harness document is necessary. Inventory reports `missing`, `matches`, or `differs` plus the canonical and target SHA-256 values when available.
+The helper is read-only. It deliberately does not generate files, replace a noncanonical `PLANS.md`, repair links, or execute project commands. Validation treats missing root `AGENTS.md`, root `CLAUDE.md`, or canonical `PLANS.md` as errors; every directory with effective agent instructions must also contain sibling Claude compatibility. It conservatively infers project boundaries from manifests colocated with agent instructions and requires architecture there, while repository reconnaissance remains authoritative for ambiguous layouts. Inventory reports `missing`, `matches`, or `differs` plus the canonical and target SHA-256 values when available.
 
 ## Verify documented claims
 
@@ -80,7 +82,10 @@ For docs-only changes, run application suites only when needed to confirm a docu
 Check the final state manually:
 
 - Root `AGENTS.md` contains repository-wide instructions and links, not copied detail.
+- Root `CLAUDE.md` imports root `AGENTS.md`.
 - Nested `AGENTS.md` files contain only local differences and inherit root rules cleanly.
+- Every root or nested `AGENTS.md` boundary has sibling `CLAUDE.md` importing the effective local instruction file.
+- Every independently buildable or runnable project boundary has `ARCHITECTURE.md`; a pure aggregation root may intentionally omit it.
 - Architecture statements describe current code; future changes are labeled and planned separately.
 - Root `PLANS.md` is byte-for-byte identical to the skill's canonical asset; project-specific rules live in `AGENTS.md` or the execution-plan index.
 - Exec-plan indexes point to real files and completed history was preserved.

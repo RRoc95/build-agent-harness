@@ -17,7 +17,7 @@ Build the harness from observable repository facts. Reconnaissance is complete w
 2. Read every instruction file that applies from the filesystem or repository root to the target directory.
 3. Capture `git status --short` before editing.
 4. Identify user-owned changes and avoid touching them unless they are directly in scope.
-5. Confirm whether the request is docs-only, whether a reference repository is supplied, and whether Claude compatibility is requested or already present.
+5. Confirm whether the request is docs-only and whether a reference repository is supplied. Inspect existing Claude conventions, but treat thin Claude compatibility as part of the default harness rather than an opt-in.
 
 Do not assume the current shell directory is the Git root. A workspace may contain multiple sibling repositories.
 
@@ -65,11 +65,19 @@ A directory merits nested harness documentation when several of these are true:
 
 A directory does not become a subproject merely because it contains source code, a Dockerfile, generated output, examples, or a vendored dependency.
 
+Classify each harness boundary before writing:
+
+- **Aggregation root:** owns repository-wide navigation and policy but has no independently built or run artifact. Require root `AGENTS.md`, `CLAUDE.md`, and `PLANS.md`; do not create root `ARCHITECTURE.md`.
+- **Independent project:** has evidence of its own build, test, runtime, deployment, or public contract boundary. Require colocated `AGENTS.md`, `CLAUDE.md`, and `ARCHITECTURE.md`.
+- **Instruction-only scope:** needs closer rules but is not independently built or run. Pair `AGENTS.md` with `CLAUDE.md`; do not manufacture architecture.
+
+A single-project repository normally classifies its root as an independent project. A repository such as a frontend/backend monorepo normally classifies the root as aggregation and the two child projects as independent.
+
 For monorepos, create a small boundary table before writing:
 
-| Area | Evidence | Build/test boundary | Runtime/deployment boundary | Local instructions needed? |
-| --- | --- | --- | --- | --- |
-| `path/` | `manifest`, `script`, `workflow` | Describe verified commands | Describe artifact/service | Yes/No with reason |
+| Area | Classification | Evidence | Build/test boundary | Runtime/deployment boundary | Required harness files |
+| --- | --- | --- | --- | --- | --- |
+| `path/` | Aggregation / project / instruction-only | `manifest`, `script`, `workflow` | Describe verified commands | Describe artifact/service | List exact files |
 
 Use this table as working evidence; do not persist it unless it adds durable value for maintainers.
 

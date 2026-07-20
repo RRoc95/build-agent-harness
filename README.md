@@ -1,6 +1,6 @@
 # Build Agent Harness
 
-面向 Codex 的仓库级 agent harness skill：基于真实工程证据生成或优化 `AGENTS.md`、`ARCHITECTURE.md`、质量指南和执行计划体系，并安装不可项目化修改的标准 `PLANS.md`。
+面向 Codex、兼容 Claude Code 的仓库级 agent harness skill：基于真实工程证据生成或优化完整 harness，并安装不可项目化修改的标准 `PLANS.md`。
 
 ## 中文
 
@@ -8,12 +8,13 @@
 
 - 调研 Git 根目录、真实子工程、清单、脚本、CI、测试、入口和部署边界。
 - 生成精简的根 `AGENTS.md`，并只在真实子工程边界创建嵌套 `AGENTS.md`。
-- 在系统边界、运行路径、接口或风险值得说明时补充 `ARCHITECTURE.md`。
+- 为每个可独立构建或运行的工程强制补齐 `ARCHITECTURE.md`；纯聚合根不创建该文档。
+- 始终生成薄 `CLAUDE.md`，通过 `@AGENTS.md` 复用 Codex 主指令；不复制共享规则。
 - 按工程需要补充 Coding Standards、Code Review 和 Verification Guide。
 - 建立 `docs/exec-plans/` 生命周期，同时保留既有 active/completed 历史。
 - 从 skill 资产原样安装统一 `PLANS.md`，并通过 SHA-256 检查缺失或漂移。
-- 以 Codex 为主；仅在已有或明确要求时提供薄 Claude Code 兼容。
-- 提供只读 `harness_audit.py`，检查 Markdown、链接、skill 元数据、Claude 导入、指令链大小和标准 `PLANS.md`。
+- 以 Codex 为主并默认兼容 Claude Code。
+- 提供只读 `harness_audit.py`，检查必需根文档、每个 AGENTS 边界的 Claude 文件、独立工程架构、Markdown、链接、skill 元数据、指令链大小和标准 `PLANS.md`。
 
 ### 仓库结构
 
@@ -58,7 +59,9 @@ python3 "${CODEX_HOME:-$HOME/.codex}/skills/build-agent-harness/scripts/harness_
   --root /path/to/repository inventory
 
 python3 "${CODEX_HOME:-$HOME/.codex}/skills/build-agent-harness/scripts/harness_audit.py" \
-  --root /path/to/repository validate
+  --root /path/to/repository validate \
+  --project-boundary admin \
+  --project-boundary server
 ```
 
 审计器不会生成或修复文件。`validate` 的退出码为：
@@ -84,11 +87,12 @@ python3 "${CODEX_HOME:-$HOME/.codex}/skills/build-agent-harness/scripts/harness_
 It can:
 
 - create concise root and nested `AGENTS.md` files;
-- add evidence-backed `ARCHITECTURE.md` documents at meaningful system boundaries;
+- require evidence-backed `ARCHITECTURE.md` at independently buildable or runnable project boundaries while leaving pure aggregation roots architecture-free;
+- always create thin root and nested `CLAUDE.md` imports while keeping `AGENTS.md` canonical;
 - create coding, review, verification, and execution-plan documentation;
 - install one canonical, project-independent `PLANS.md`;
 - preserve existing execution-plan history and user changes;
-- add thin Claude Code compatibility when requested or already present;
+- provide Claude Code compatibility by default;
 - audit harness structure without modifying the repository.
 
 ### Install

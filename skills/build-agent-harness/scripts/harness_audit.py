@@ -110,6 +110,16 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
         command.add_argument(
             "--json", action="store_true", help="Emit machine-readable JSON."
         )
+        command.add_argument(
+            "--project-boundary",
+            action="append",
+            default=[],
+            metavar="PATH",
+            help=(
+                "Repository-relative independently buildable or runnable project "
+                "boundary; repeat for multiple projects."
+            ),
+        )
     return parser.parse_args(argv)
 
 
@@ -145,6 +155,22 @@ def resolve_repository(path_value: str) -> Tuple[Path, Optional[Path]]:
         git_root = Path(git_root_value).resolve()
         return git_root, git_root
     return requested, None
+
+
+def normalize_project_boundaries(root: Path, values: Sequence[str]) -> List[str]:
+    normalized = set()
+    for value in values:
+        candidate = (root / value).resolve()
+        try:
+            candidate.relative_to(root)
+        except ValueError as exc:
+            raise ValueError(
+                f"project boundary escapes repository root: {value}"
+            ) from exc
+        if not candidate.is_dir():
+            raise ValueError(f"project boundary is not a directory: {value}")
+        normalized.add(relative(candidate, root))
+    return sorted(normalized)
 
 
 def iter_files(root: Path) -> Iterable[Path]:
@@ -273,6 +299,7 @@ def build_inventory(root: Path, git_root: Optional[Path]) -> Dict[str, Any]:
     agent_files = [
         path for path in files if path.name in {"AGENTS.md", "AGENTS.override.md"}
     ]
+    architecture_files = [path for path in files if path.name == "ARCHITECTURE.md"]
     claude_files = [path for path in files if path.name == "CLAUDE.md"]
     project_skills = [path for path in files if is_project_skill(path, root)]
     exec_plans = [path for path in files if is_exec_plan(path, root)]
@@ -282,6 +309,19 @@ def build_inventory(root: Path, git_root: Optional[Path]) -> Dict[str, Any]:
     for manifest in manifests:
         parent = relative(manifest.parent, root)
         subprojects.setdefault(parent, []).append(manifest.name)
+
+    agent_directories = {relative(path.parent, root) for path in agent_files}
+    manifest_directories = set(subprojects)
+    nested_project_boundaries = sorted(
+        (agent_directories & manifest_directories) - {"."}
+    )
+    project_boundaries = nested_project_boundaries
+    if (
+        not nested_project_boundaries
+        and "." in agent_directories
+        and "." in manifest_directories
+    ):
+        project_boundaries = ["."]
 
     status_output = run_git(root, "status", "--short") if git_root else None
     head = run_git(root, "rev-parse", "--short", "HEAD") if git_root else None
@@ -296,8 +336,10 @@ def build_inventory(root: Path, git_root: Optional[Path]) -> Dict[str, Any]:
             {"path": path, "manifests": sorted(names)}
             for path, names in sorted(subprojects.items())
         ],
+        "project_boundaries": project_boundaries,
         "harness_files": [file_record(path, root) for path in harness_files],
         "agent_files": [file_record(path, root) for path in agent_files],
+        "architecture_files": [relative(path, root) for path in architecture_files],
         "claude_files": [relative(path, root) for path in claude_files],
         "project_skills": [relative(path, root) for path in project_skills],
         "exec_plans": [relative(path, root) for path in exec_plans],
@@ -520,6 +562,97 @@ def check_claude_imports(
             )
 
 
+def claude_imports_target(path: Path, text: str, expected: Path) -> bool:
+    expected_resolved = expected.resolve()
+    for line in text.splitlines():
+        match = CLAUDE_IMPORT_RE.match(line)
+        if not match:
+            continue
+        target = match.group(1).strip("<>")
+        if urlsplit(target).scheme:
+            continue
+        target_path = target.split("#", 1)[0]
+        if target_path and (path.parent / target_path).resolve() == expected_resolved:
+            return True
+    return False
+
+
+def check_harness_baseline(
+    root: Path,
+    inventory: Dict[str, Any],
+    markdown_texts: Dict[Path, str],
+    errors: List[Dict[str, Any]],
+) -> None:
+    agent_paths = [root / item["path"] for item in inventory["agent_files"]]
+    agent_directories = {root}
+    agent_directories.update(path.parent for path in agent_paths)
+    project_directories = {
+        root if path == "." else root / path
+        for path in inventory["project_boundaries"]
+    }
+    required_directories = agent_directories | project_directories
+    for directory in sorted(required_directories, key=lambda item: item.as_posix()):
+        override = directory / "AGENTS.override.md"
+        standard = directory / "AGENTS.md"
+        effective = override if override.is_file() else standard
+        claude = directory / "CLAUDE.md"
+        claude_relative = relative(claude, root)
+
+        if (
+            directory != root
+            and directory in project_directories
+            and not effective.is_file()
+        ):
+            errors.append(
+                finding(
+                    "missing-project-agents",
+                    "project boundary does not contain AGENTS.md or AGENTS.override.md",
+                    relative(standard, root),
+                )
+            )
+
+        if directory in project_directories:
+            architecture = directory / "ARCHITECTURE.md"
+            architecture_relative = relative(architecture, root)
+        else:
+            architecture = None
+            architecture_relative = None
+
+        if architecture is not None and not architecture.is_file():
+            errors.append(
+                finding(
+                    "missing-project-architecture",
+                    f"missing architecture file for project boundary "
+                    f"{relative(directory, root)}",
+                    architecture_relative,
+                )
+            )
+
+        if not claude.is_file():
+            errors.append(
+                finding(
+                    (
+                        "missing-root-claude"
+                        if directory == root
+                        else "missing-boundary-claude"
+                    ),
+                    f"missing Claude compatibility file for {relative(effective, root)}",
+                    claude_relative,
+                )
+            )
+            continue
+
+        text = markdown_texts.get(claude)
+        if text is not None and not claude_imports_target(claude, text, effective):
+            errors.append(
+                finding(
+                    "missing-agents-import",
+                    f"Claude compatibility file must import {effective.name}",
+                    claude_relative,
+                )
+            )
+
+
 def instruction_chain(
     root: Path, target_directory: Path
 ) -> List[Path]:
@@ -601,6 +734,7 @@ def validate(
             )
         )
 
+    markdown_texts: Dict[Path, str] = {}
     plans_template = inventory["plans_template"]
     if plans_template["status"] == "missing":
         errors.append(
@@ -635,6 +769,7 @@ def validate(
         text = read_markdown(path, root, errors)
         if text is None:
             continue
+        markdown_texts[path] = text
         if text and not text.endswith("\n"):
             errors.append(
                 finding(
@@ -649,6 +784,8 @@ def validate(
             check_skill(path, root, text, errors, warnings)
         if path.name == "CLAUDE.md":
             check_claude_imports(path, root, text, errors)
+
+    check_harness_baseline(root, inventory, markdown_texts, errors)
 
     for item in inventory["claude_skill_links"]:
         if item["broken"]:
@@ -682,6 +819,9 @@ def validate(
         "summary": {
             "harness_files": len(inventory["harness_files"]),
             "agent_files": len(inventory["agent_files"]),
+            "architecture_files": len(inventory["architecture_files"]),
+            "claude_files": len(inventory["claude_files"]),
+            "project_boundaries": len(inventory["project_boundaries"]),
             "project_skills": len(inventory["project_skills"]),
             "exec_plans": len(inventory["exec_plans"]),
             "plans_template_status": plans_template["status"],
@@ -722,6 +862,13 @@ def print_inventory(inventory: Dict[str, Any]) -> None:
         "Harness files", [item["path"] for item in inventory["harness_files"]]
     )
     print_list("Agent instructions", [item["path"] for item in inventory["agent_files"]])
+    print_list("Project boundaries", inventory["project_boundaries"])
+    if inventory["explicit_project_boundaries"]:
+        print_list(
+            "Explicit project boundaries",
+            inventory["explicit_project_boundaries"],
+        )
+    print_list("Architecture documents", inventory["architecture_files"])
     print_list("Claude compatibility files", inventory["claude_files"])
     print_list("Repository skills", inventory["project_skills"])
     print_list("Execution-plan files", inventory["exec_plans"])
@@ -750,6 +897,9 @@ def print_validation(result: Dict[str, Any]) -> None:
         "Summary: "
         f"{summary['harness_files']} harness file(s), "
         f"{summary['agent_files']} AGENTS file(s), "
+        f"{summary['architecture_files']} architecture file(s), "
+        f"{summary['claude_files']} Claude file(s), "
+        f"{summary['project_boundaries']} project boundary/boundaries, "
         f"PLANS.md {summary['plans_template_status']}, "
         f"maximum instruction chain {summary['maximum_agent_chain_bytes']}/"
         f"{summary['max_agent_bytes']} bytes"
@@ -770,6 +920,16 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     try:
         root, git_root = resolve_repository(args.root)
         inventory = build_inventory(root, git_root)
+        explicit_boundaries = normalize_project_boundaries(
+            root, args.project_boundary
+        )
+        inventory["inferred_project_boundaries"] = inventory[
+            "project_boundaries"
+        ]
+        inventory["explicit_project_boundaries"] = explicit_boundaries
+        inventory["project_boundaries"] = sorted(
+            set(inventory["project_boundaries"]) | set(explicit_boundaries)
+        )
         if args.command == "inventory":
             if args.json:
                 print(json.dumps(inventory, ensure_ascii=False, indent=2))

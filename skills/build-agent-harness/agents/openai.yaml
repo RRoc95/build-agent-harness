@@ -1,4 +1,4 @@
 interface:
   display_name: "Build Agent Harness"
-  short_description: "Build harness docs with a canonical PLANS.md"
-  default_prompt: "Use $build-agent-harness to generate or optimize the agent harness for this repository and install the canonical PLANS.md unchanged."
+  short_description: "Build complete Codex and Claude harness docs"
+  default_prompt: "Use $build-agent-harness to create or optimize this repository’s harness with required root AGENTS.md, CLAUDE.md, canonical PLANS.md, and ARCHITECTURE.md at each independent project boundary."
