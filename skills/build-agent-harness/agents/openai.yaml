@@ -1,4 +1,4 @@
 interface:
   display_name: "Build Agent Harness"
-  short_description: "Build consistent Codex and Claude harness docs"
-  default_prompt: "Use $build-agent-harness to create or optimize this repository’s consistently formatted harness with required root AGENTS.md, CLAUDE.md, canonical PLANS.md, and ARCHITECTURE.md at each independent project boundary."
+  short_description: "Build and audit scoped repository harness docs"
+  default_prompt: "Use $build-agent-harness to improve this repository’s agent guidance within the requested scope, using project evidence and relevant validation."
