@@ -284,6 +284,15 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
                 "boundary; repeat for multiple projects."
             ),
         )
+    package = commands.add_parser(
+        "validate-skill", help="Check a skill package without repository baseline rules."
+    )
+    package.add_argument(
+        "--skill-dir",
+        required=True,
+        help="Exact skill package directory; does not expand to the containing Git root.",
+    )
+    package.add_argument("--json", action="store_true", help="Emit machine-readable JSON.")
     return parser.parse_args(argv)
 
 
@@ -1535,6 +1544,62 @@ def format_finding(item: Dict[str, Any]) -> str:
     return f"{prefix}{item['message']} [{item['code']}]"
 
 
+def validate_skill_package(directory: Path) -> Dict[str, Any]:
+    """Check package Markdown and entrypoint metadata, without executing its contents."""
+    root = directory.resolve()
+    if not root.is_dir():
+        raise ValueError(f"skill directory does not exist or is not a directory: {root}")
+    errors: List[Dict[str, Any]] = []
+    warnings: List[Dict[str, Any]] = []
+    entrypoint = root / "SKILL.md"
+    if not entrypoint.is_file():
+        errors.append(
+            finding(
+                "missing-skill-entrypoint", "skill package requires SKILL.md", "SKILL.md"
+            )
+        )
+
+    markdown_files = sorted(
+        path for path in iter_files(root) if path.suffix.lower() == ".md"
+    )
+    for path in markdown_files:
+        text = read_markdown(path, root, errors)
+        if text is None:
+            continue
+        if text and not text.endswith("\n"):
+            errors.append(
+                finding(
+                    "missing-final-newline",
+                    "harness text file must end with a newline",
+                    relative(path, root),
+                )
+            )
+        check_fences(path, root, text, errors)
+        check_links(path, root, text, errors, warnings)
+        if path == entrypoint:
+            check_skill(path, root, text, errors, warnings)
+
+    return {
+        "root": str(root),
+        "ok": not errors,
+        "errors": errors,
+        "warnings": warnings,
+        "summary": {"markdown_files": len(markdown_files)},
+    }
+
+
+def print_skill_validation(result: Dict[str, Any]) -> None:
+    print(f"Skill package validation: {'PASS' if result['ok'] else 'FAIL'}")
+    print(f"Package: {result['root']}")
+    print(f"Summary: {result['summary']['markdown_files']} Markdown file(s)")
+    print("Checks: entrypoint metadata, local link paths, fences, UTF-8 and final newlines")
+    for key in ("errors", "warnings"):
+        if result[key]:
+            print(f"{key.title()}:")
+            for item in result[key]:
+                print(f"  - {format_finding(item)}")
+
+
 def print_validation(result: Dict[str, Any]) -> None:
     print(f"Validation: {'PASS' if result['ok'] else 'FAIL'}")
     print(f"Repository: {result['root']}")
@@ -1564,6 +1629,14 @@ def print_validation(result: Dict[str, Any]) -> None:
 def main(argv: Optional[Sequence[str]] = None) -> int:
     args = parse_args(argv)
     try:
+        if args.command == "validate-skill":
+            result = validate_skill_package(Path(args.skill_dir))
+            if args.json:
+                print(json.dumps(result, ensure_ascii=False, indent=2))
+            else:
+                print_skill_validation(result)
+            return 0 if result["ok"] else 1
+
         root, git_root = resolve_repository(args.root)
         inventory = build_inventory(root, git_root)
         explicit_boundaries = normalize_project_boundaries(

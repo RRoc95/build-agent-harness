@@ -2,6 +2,8 @@
 
 Design the harness as a layered operating system for repository work: short instructions are always available, project architecture is explicit, Claude imports the Codex-first rules, plans preserve long-running state, and executable helpers validate what can be checked mechanically.
 
+This blueprint applies to full-harness creation or optimization. For a focused request, use only the relevant parts and preserve its scope. Required filenames, canonical PLANS.md, Claude imports, and document grammar below are this skill's established conventions; Codex does not require this complete document set. See [OpenAI sources](openai-sources.md) for that distinction.
+
 ## Contents
 
 - [Design principles](#design-principles)
@@ -26,6 +28,8 @@ Apply these principles in order:
 5. **Checkable completion.** Define success using exact commands, observable outputs, or explicit review checks.
 6. **Progressive disclosure.** Move detailed or situational workflows into linked documents or skills.
 7. **Model-agnostic durability.** Describe the repository and its workflow, not prompt tricks for a specific model release.
+8. **Authorization continuity.** Repository guidance supports the user's request within host permissions. Do not add an approval gate to already-authorized local work or reinterpret an example workflow as binding policy.
+9. **Measured improvement.** When optimizing behavior, connect a trace or observed failure to one rule change and a relevant check. A longer instruction file or a passing style audit is not evidence of better model performance.
 
 Codex combines applicable instruction files from the repository root toward the working directory, with closer instructions taking precedence. Keep the combined chain small. The audit helper defaults to a 32 KiB combined limit; override `--max-agent-bytes` when repository configuration uses a different value, and re-check current official guidance before relying on the exact default.
 
@@ -59,6 +63,8 @@ The root file is a concise operating guide, not a full handbook. Include only wh
 Follow the mandatory title, semantic section order, numbering rules, and source layout in [document-style.md](document-style.md). The root outline must expose repository positioning and map, start-of-task reading, autonomy and execution boundaries, ExecPlan triggers, repository invariants, on-demand documentation, authoritative commands, and completion criteria in that order.
 
 Write imperatively and precisely. State working directories for commands in monorepos. Distinguish required checks from optional or expensive checks. Name missing prerequisites rather than hiding them.
+
+For autonomy guidance, state when the agent should act, what truly requires input, how it can finish independent work, and what proves completion. An unresolved optional preference should not stop the workflow. Make these rules concrete and scoped instead of copying an entire model system prompt. See [model migration](model-migration.md) for the Sol/Astra migration procedure.
 
 Keep out:
 
@@ -181,6 +187,8 @@ Typical rows include:
 - deployment or infrastructure change.
 
 Use repository commands, not generic placeholders. Explain layered escalation from focused checks to broader suites. Require skipped checks and environmental blockers to be reported explicitly.
+
+Include the success signal and stop condition: passing required checks ends validation unless a new change, failure, or unresolved concern justifies more. For services or UI behavior, name the functional request or interaction that proves readiness; a PID, open port, or generated file alone is insufficient. Keep environment prerequisites separate from application defects and avoid blanket full-suite requirements for low-impact documentation edits.
 
 ## Repository-local skills
 

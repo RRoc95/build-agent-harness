@@ -26,6 +26,8 @@ The contract standardizes:
 
 It does not standardize project facts. Never copy a command, package name, port, directory, technology, service, invariant, or runtime path from a reference repository without evidence in the target.
 
+This is a local style contract for full-harness generation and requested normalization, not an OpenAI model requirement. Apply it only to the requested surfaces in a focused update. Preserve verified facts and keep each section as short as its useful content allows; headings are navigation, not a word-count target.
+
 Use the target repository's established human language for prose. Keep machine-audited outline headings in one of the two canonical vocabularies supported by this skill: use the Chinese labels below for Chinese harnesses and their stated English equivalents for other harnesses. Do not freely translate the semantic anchor headings into additional languages, because the deterministic auditor intentionally recognizes Chinese and English only. Match existing numbered or unnumbered `AGENTS.md` headings when they are internally consistent. Use numbered level-two headings in every `ARCHITECTURE.md`.
 
 ## Shared Markdown style

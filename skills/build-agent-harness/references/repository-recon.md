@@ -19,6 +19,8 @@ Build the harness from observable repository facts. Reconnaissance is complete w
 4. Identify user-owned changes and avoid touching them unless they are directly in scope.
 5. Confirm whether the request is docs-only and whether a reference repository is supplied. Inspect existing Claude conventions, but treat thin Claude compatibility as part of the default harness rather than an opt-in.
 
+Classify the request as full create/optimize, focused change, or audit-only before applying baseline requirements. Reuse the current isolated checkout when one is supplied. Read-only discovery and authorized local edits do not need another confirmation merely because a reference example uses human gates.
+
 Do not assume the current shell directory is the Git root. A workspace may contain multiple sibling repositories.
 
 ## Collect evidence
@@ -36,8 +38,10 @@ Search broadly, then read narrowly. Prefer `rg --files` and `rg` for discovery.
 | What is risky? | Authentication, authorization, migrations, concurrency, money, destructive jobs, external integrations |
 | What conventions are real? | Representative nearby code, formatter/linter configuration, CI enforcement |
 | What changed recently? | Recent commits touching harness, build, test, architecture, or deployment files |
+| What causes agent failures? | Observed traces, repeated user corrections, unnecessary pauses, tool errors, skipped assertions, and validation results |
+| Which rules are requirements? | Host permissions, explicit user constraints, applicable repository rules, and their exact source; distinguish conventions and recommendations |
 
-Inspect at least:
+For a full harness run, inspect the following where present. For focused work, inspect only the sources needed to verify changed claims:
 
 - root and subproject manifests;
 - package/task scripts and Makefiles;
@@ -50,7 +54,9 @@ Inspect at least:
 
 Do not copy a command merely because it appears in prose. Confirm it against the executable configuration or run it safely.
 
-If root `PLANS.md` differs from the skill's canonical asset, inspect it only to identify verified project-specific triggers, constraints, or index rules that belong elsewhere. Do not preserve its generic template wording or use it as a reference for the replacement file.
+For model migration, record the old and requested model identifiers, available host controls, current effective effort when known, and the specific prompt surfaces. Do not infer API capabilities or alter runtime defaults from a model label. Consult [model migration](model-migration.md) only for that mode.
+
+When replacing root `PLANS.md` is in scope and it differs from the canonical asset, identify verified project-specific triggers, constraints, or index rules that belong elsewhere. Do not use its generic template wording as a reference for the replacement. Focused changes and read-only audits do not imply replacement.
 
 ## Recognize real subprojects
 
@@ -124,5 +130,7 @@ Use this order:
 3. Run a safe discovery or help command.
 4. Omit a nonessential claim.
 5. Ask one concrete question if the unresolved fact materially changes the harness.
+
+Before asking, determine whether the answer is already supplied by the session or repository, and finish work that does not depend on it. If a rule itself causes a pause, cite its exact file and wording and explain why it applies. Do not interpret an optional recommendation as a requirement.
 
 Fail loudly in the delivery report when a command could not be run, an architecture path was sampled rather than exhaustively traced, or a policy has no enforceable repository evidence.
